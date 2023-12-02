@@ -1,10 +1,6 @@
-﻿using System.Buffers;
-using Newtonsoft.Json.Linq;
-using Xunit.Abstractions;
-
-namespace AdventOfCode2023.Day1
+﻿namespace AdventOfCode2023.Day1
 {
-    public class Day1(ITestOutputHelper _output)
+    public class Day1(ITestOutputHelper output)
     {
         private readonly List<string> _input = File.ReadAllLines("Day1/input.txt").ToList();
         private readonly List<string> _testInput = [
@@ -25,55 +21,56 @@ namespace AdventOfCode2023.Day1
         [Fact]
         public void PartOne_Example()
         {
-            var finder = new NubmerFinder(_testInput);
+            var finder = new NumberFinder(_testInput);
             var sum = finder.Calculate();
 
             Assert.Equal(142, sum);
 
-            _output.WriteLine($"Answer: {sum}");
+            output.WriteLine($"Answer: {sum}");
         }
 
         [Fact]
         public void ParOne()
         {
-            var finder = new NubmerFinder(_input);
+            var finder = new NumberFinder(_input);
             var sum = finder.Calculate();
 
-            _output.WriteLine($"Answer: {sum}");
+            output.WriteLine($"Answer: {sum}");
         }
 
         [Fact]
         public void PartTwo_Example()
         {
-            var finder = new NubmerFinder(_testInput2);
+            var finder = new NumberFinder(_testInput2);
             var sum = finder.Calculate2();
 
             Assert.Equal(281, sum);
-            _output.WriteLine($"Answer: {sum}");
+            output.WriteLine($"Answer: {sum}");
         }
 
         [Fact]
         public void PartTwo()
         {
-            var finder = new NubmerFinder(_input);
+            var finder = new NumberFinder(_input);
             var sum = finder.Calculate2();
 
-            _output.WriteLine($"Answer: {sum}");
+            output.WriteLine($"Answer: {sum}");
         }
     }
 
-    public class NubmerFinder
+    public class NumberFinder
     {
         private readonly List<string> _input;
-        private readonly Dictionary<string, char> numberAsWords;
-        private readonly SearchValues<char> numbers;
-        private readonly Dictionary<string, char> numberAsWordsWithReversWords;
+        private readonly Dictionary<string, char> _numberAsWords;
+        private readonly SearchValues<char> _numbers;
+        private readonly Dictionary<string, char> _numberAsWordsWithReversWords;
 
-        public NubmerFinder(List<string> input)
+        public NumberFinder(List<string> input)
         {
             _input = input;
-            numbers = SearchValues.Create(new char[] { '1', '2', '2', '3', '4', '5', '6', '7', '8', '9' });
-            numberAsWords = new(){
+            _numbers = SearchValues.Create(new[] { '1', '2', '2', '3', '4', '5', '6', '7', '8', '9' });
+            _numberAsWords = new Dictionary<string, char>
+            {
                 { "one",'1' },
                 { "two",'2' },
                 { "three",'3' },
@@ -84,8 +81,8 @@ namespace AdventOfCode2023.Day1
                 { "eight",'8' },
                 { "nine",'9' },
             };
-        
-            numberAsWordsWithReversWords = numberAsWords.ToDictionary(x => new string(x.Key.Reverse().ToArray()), x => x.Value);
+
+            _numberAsWordsWithReversWords = _numberAsWords.ToDictionary(x => new string(x.Key.Reverse().ToArray()), x => x.Value);
         }
 
         public int Sum { get; set; }
@@ -93,8 +90,8 @@ namespace AdventOfCode2023.Day1
         {
             foreach (var item in _input)
             {
-                TryGetIntChar(item, out var first);
-                TryGetIntChar(item.Reverse().ToArray(), out var second);
+                var first = GetIntChar(item);
+                var second = GetIntChar(item.Reverse().ToArray());
                 Sum += int.Parse("" + first + second);
             }
 
@@ -105,48 +102,44 @@ namespace AdventOfCode2023.Day1
         {
             foreach (var item in _input)
             {
-                TryGetNumberWordOrInt(item, numberAsWords, out var first);
-                TryGetNumberWordOrInt(item.Reverse().ToArray(), numberAsWordsWithReversWords, out var second);
+                var first = GetNumberWordOrInt(item, _numberAsWords);
+                var second = GetNumberWordOrInt(item.Reverse().ToArray(), _numberAsWordsWithReversWords);
                 Sum += int.Parse("" + first + second);
             }
 
             return Sum;
         }
 
-        private bool TryGetIntChar(ReadOnlySpan<char> rawLine, out char? intChar)
+        private char? GetIntChar(ReadOnlySpan<char> rawLine)
         {
-            intChar = null;
             foreach (var c in rawLine)
             {
-                if (numbers.Contains(c))
+                if (_numbers.Contains(c))
                 {
-                    intChar = c;
-                    return true;
+                    return c;
                 }
 
             }
 
-            return false;
+            return null;
         }
 
-        private bool TryGetNumberWordOrInt(ReadOnlySpan<char> rawLine, Dictionary<string, char> words, out char? intChar)
+        private char? GetNumberWordOrInt(ReadOnlySpan<char> rawLine, Dictionary<string, char> words)
         {
-            intChar = null;
             for (var i = 0; i < rawLine.Length; i++)
             {
-                if (numbers.Contains(rawLine[i]))
+                if (_numbers.Contains(rawLine[i]))
                 {
-                    intChar = rawLine[i];
-                    return true;
+                    return rawLine[i];
                 }
 
-                if (TryGetNumberFromWord(rawLine, i, words, out intChar))
+                if (TryGetNumberFromWord(rawLine, i, words, out var intChar))
                 {
-                    return true;
+                    return intChar;
                 }
             }
 
-            return false;
+            return null;
         }
 
         private bool TryGetNumberFromWord(ReadOnlySpan<char> rawLine, int i, Dictionary<string, char> words, out char? intChar)
@@ -165,7 +158,6 @@ namespace AdventOfCode2023.Day1
                         found = false;
                         break;
                     }
-
                 }
 
                 if (found)

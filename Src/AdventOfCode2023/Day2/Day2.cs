@@ -1,0 +1,133 @@
+﻿using Filter = System.Collections.Generic.Dictionary<string, int>;
+
+namespace AdventOfCode2023.Day2
+{
+    public partial class Day2(ITestOutputHelper output)
+    {
+        private readonly List<string> _input = File.ReadAllLines("Day2/input.txt").ToList();
+
+        private readonly List<string> _testInput =
+        [
+            "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green",
+            "Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue",
+            "Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red",
+            "Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red",
+            "Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green",
+        ];
+
+        private readonly List<string> _testInput2 =
+        [
+        ];
+
+        [Fact]
+        public void PartOne_Example()
+        {
+            var parser = new GameParser(_testInput);
+            parser.Filter(new Filter { { "red", 12 }, { "green", 13 }, { "blue", 14 } });
+            var answer = parser.Games.Sum(x => x.Id);
+            Assert.Equal(8, answer);
+            output.WriteLine($"Answer: {answer}");
+        }
+
+        [Fact]
+        public void ParOne()
+        {
+            var parser = new GameParser(_input);
+            parser.Filter(new Filter { { "red", 12 }, { "green", 13 }, { "blue", 14 } });
+            var answer = parser.Games.Sum(x => x.Id);
+            output.WriteLine($"Answer: {answer}");
+        }
+
+        [Fact]
+        public void PartTwo_Example()
+        {
+            var parser = new GameParser(_testInput);
+            var answer = parser.Power();
+            Assert.Equal(2286, answer);
+            output.WriteLine($"Answer: {answer}");
+        }
+
+        [Fact]
+        public void PartTwo()
+        {
+            var parser = new GameParser(_input);
+            var answer = parser.Power();
+            output.WriteLine($"Answer: {answer}");
+        }
+
+        public class GameParser(List<string> rawLines)
+        {
+            public List<Game> Games { get; private set; } = [];
+
+            public void Filter(Filter filters)
+            {
+                Games = new List<Game>(rawLines.Select(x => new Game(x)).Where(x => x.IsValid(filters)));
+            }
+
+            public long Power()
+            {
+                return rawLines.Select(x => new Game(x).CalculateMinimumCubes()).Sum();
+            }
+        }
+
+        public partial class Game
+        {
+            public Game(string rawLine)
+            {
+                var parts = rawLine.Split(":");
+                Id = int.Parse(parts[0].Split(" ")[1]);
+                var cubeSets = parts[1].Split(';');
+                CubeSubSets = cubeSets.Select(x => x.Trim()
+                    .Split(", ")
+                    .Select(y => y.Split(' ')).ToArray()
+                ).ToArray();
+            }
+
+            private string[][][] CubeSubSets { get; set; }
+
+            public bool IsValid(Filter filters)
+            {
+                foreach (var cubeParts in CubeSubSets)
+                {
+                    foreach (var cubePart in cubeParts)
+                    {
+                        if (!filters.TryGetValue(cubePart[1], out var filterValue) || int.Parse(cubePart[0]) <= filterValue)
+                        {
+                            continue;
+                        }
+
+                        Valid = false;
+                        break;
+                    }
+                }
+
+                return Valid;
+            }
+
+            public long CalculateMinimumCubes()
+            {
+                foreach (var cubeSubSet in CubeSubSets)
+                {
+                    foreach (var cubeSetPart in cubeSubSet)
+                    {
+                        MinimumCubes[cubeSetPart[1]] = Math.Max(MinimumCubes[cubeSetPart[1]], int.Parse(cubeSetPart[0]));
+                    }
+                }
+
+
+                var values = MinimumCubes.Select(x => x.Value).ToArray();
+                long power = 1;
+                foreach (var value in values)
+                {
+                    power *= value;
+                }
+
+                return power;
+            }
+
+            public int Id { get; set; }
+            private bool Valid { get; set; } = true;
+            public Dictionary<string, int> MinimumCubes { get; set; } = new() { { "red", int.MinValue }, { "green", int.MinValue }, { "blue", int.MinValue }, };
+        }
+    }
+}
