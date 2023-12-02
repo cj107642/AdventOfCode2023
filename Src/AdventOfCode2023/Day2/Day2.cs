@@ -114,15 +114,7 @@ namespace AdventOfCode2023.Day2
                     }
                 }
 
-
-                var values = MinimumCubes.Select(x => x.Value).ToArray();
-                long power = 1;
-                foreach (var value in values)
-                {
-                    power *= value;
-                }
-
-                return power;
+                return MinimumCubes.Values.Aggregate<int, long>(1, (current, value) => current * value);
             }
 
             public int Id { get; set; }
