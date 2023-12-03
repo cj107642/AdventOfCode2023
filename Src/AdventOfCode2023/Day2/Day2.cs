@@ -5,7 +5,6 @@ namespace AdventOfCode2023.Day2
     public partial class Day2(ITestOutputHelper output)
     {
         private readonly List<string> _input = File.ReadAllLines("Day2/input.txt").ToList();
-
         private readonly List<string> _testInput =
         [
             "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green",
@@ -13,10 +12,6 @@ namespace AdventOfCode2023.Day2
             "Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red",
             "Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red",
             "Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green",
-        ];
-
-        private readonly List<string> _testInput2 =
-        [
         ];
 
         [Fact]
@@ -30,7 +25,7 @@ namespace AdventOfCode2023.Day2
         }
 
         [Fact]
-        public void ParOne()
+        public void PartOne()
         {
             var parser = new GameParser(_input);
             parser.Filter(new Filter { { "red", 12 }, { "green", 13 }, { "blue", 14 } });
@@ -61,7 +56,7 @@ namespace AdventOfCode2023.Day2
 
             public void Filter(Filter filters)
             {
-                Games = new List<Game>(rawLines.Select(x => new Game(x)).Where(x => x.IsValid(filters)));
+                Games = [..rawLines.Select(x => new Game(x)).Where(x => x.IsValid(filters))];
             }
 
             public long Power()
@@ -70,7 +65,7 @@ namespace AdventOfCode2023.Day2
             }
         }
 
-        public partial class Game
+        public class Game
         {
             public Game(string rawLine)
             {
@@ -83,7 +78,7 @@ namespace AdventOfCode2023.Day2
                 ).ToArray();
             }
 
-            private string[][][] CubeSubSets { get; set; }
+            private string[][][] CubeSubSets { get; }
 
             public bool IsValid(Filter filters)
             {
@@ -117,9 +112,9 @@ namespace AdventOfCode2023.Day2
                 return MinimumCubes.Values.Aggregate<int, long>(1, (current, value) => current * value);
             }
 
-            public int Id { get; set; }
+            public int Id { get; }
             private bool Valid { get; set; } = true;
-            public Dictionary<string, int> MinimumCubes { get; set; } = new() { { "red", int.MinValue }, { "green", int.MinValue }, { "blue", int.MinValue }, };
+            private Dictionary<string, int> MinimumCubes { get; } = new() { { "red", int.MinValue }, { "green", int.MinValue }, { "blue", int.MinValue } };
         }
     }
 }

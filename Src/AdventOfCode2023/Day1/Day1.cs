@@ -30,7 +30,7 @@
         }
 
         [Fact]
-        public void ParOne()
+        public void PartOne()
         {
             var finder = new NumberFinder(_input);
             var sum = finder.Calculate();
