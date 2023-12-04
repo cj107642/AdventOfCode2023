@@ -2,7 +2,7 @@
 
 namespace AdventOfCode2023.Day2
 {
-    public partial class Day2(ITestOutputHelper output)
+    public class Day2(ITestOutputHelper output)
     {
         private readonly List<string> _input = File.ReadAllLines("Day2/input.txt").ToList();
         private readonly List<string> _testInput =

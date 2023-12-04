@@ -85,7 +85,7 @@
             _numberAsWordsWithReversWords = _numberAsWords.ToDictionary(x => new string(x.Key.Reverse().ToArray()), x => x.Value);
         }
 
-        public int Sum { get; set; }
+        private int Sum { get; set; }
         public int Calculate()
         {
             foreach (var item in _input)
