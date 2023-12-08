@@ -1,4 +1,6 @@
-﻿namespace AdventOfCode2023.Day7
+﻿using Labels = System.Collections.Generic.List<(char Key, int Count)>;
+
+namespace AdventOfCode2023.Day7
 {
     public class Day7(ITestOutputHelper output)
     {
@@ -27,7 +29,7 @@
         {
             var parser = new CamelCardsParser(_testInput);
             var answer = parser.Calculate2();
-            Assert.Equal(5905, answer);
+            Assert.Equal(6440, answer);
             output.WriteLine($"Answer: {answer}");
         }
 
@@ -40,474 +42,221 @@
         }
     }
 
-    public class CamelCardsParser
+    public sealed class CamelCardsParser
     {
-        public List<Hand> Hands { get; set; }
+        private List<Hand> Hands { get; }
 
-        public static Dictionary<char, int> CardTypeToInt = new()
+        private static readonly List<IHandType> handTypes =
+        [
+            new HighCard(),
+            new FiveOfKind(),
+            new FourOfKind(),
+            new FullHouse(),
+            new ThreeOfKind(),
+            new TwoPair(),
+            new OnePair()
+        ];
+
+        public CamelCardsParser(IEnumerable<string> rawLines)
         {
-            { 'A', 5 },
-            { 'K', 4 },
-            { 'Q', 3 },
-            { 'J', 2 },
-            { 'T', 1 },
-        };
-
-        public CamelCardsParser(List<string> rawLines)
-        {
-            Hands = rawLines.Select(x =>
-            {
-                var parts = x.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                return Hand.Create(parts[0].ToList(), int.Parse(parts[1]));
-            }).ToList();
-
-            HandsWithJoker = rawLines.Select(x =>
-            {
-                var parts = x.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                return Hand.Create2(parts[0].ToList(), int.Parse(parts[1]));
-            }).ToList();
+            Hands = rawLines.Select(x => x.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                .Select(x => x[0].Contains('J') ?
+                    new JokerHand(x[0], int.Parse(x[1])):
+                    new Hand(x[0], int.Parse(x[1])))
+                .ToList();
         }
-
-        public List<Hand> HandsWithJoker { get; set; }
 
         public long Calculate()
         {
-            Hands.Sort(SortByHand);
-
-            long sum = 0;
-            for (var i = 0; i < Hands.Count; i++)
-            {
-                sum += Hands[i].Bet * (i + 1);
-            }
-
-            return sum;
+            return Hands
+                .Select(x => x.SetHandType(handTypes))
+                .Order(new HandComparer(new string("AKQJT98765432".Reverse().ToArray())))
+                .Select((x, i) => x.Bet * (i + 1))
+                .Sum();
         }
 
-        public static int SortByHand(Hand a, Hand b)
+        public int Calculate2()
         {
-            if (a.HandType != b.HandType)
-            {
-                return a.HandType - b.HandType;
-            }
-
-            for (var i = 0; i < a.UnsortedCards.Length; i++)
-            {
-                if (a.UnsortedCards[i] == b.UnsortedCards[i])
-                {
-                    continue;
-                }
-
-
-                if (char.IsDigit(a.UnsortedCards[i]) && !char.IsDigit(b.UnsortedCards[i]))
-                {
-                    return -1;
-                }
-
-                if (!char.IsDigit(a.UnsortedCards[i]) && char.IsDigit(b.UnsortedCards[i]))
-                {
-                    return 1;
-                }
-
-                if (char.IsDigit(a.UnsortedCards[i]) && char.IsDigit(b.UnsortedCards[i]))
-                {
-                    return a.UnsortedCards[i] - b.UnsortedCards[i];
-                }
-
-                if (!char.IsDigit(a.UnsortedCards[i]) && !char.IsDigit(b.UnsortedCards[i]))
-                {
-                    return CardTypeToInt[a.UnsortedCards[i]] - CardTypeToInt[b.UnsortedCards[i]];
-                }
-            }
-
-            return 0;
-        }
-
-        public static int SortByHand2(Hand a, Hand b)
-        {
-            if (a.HandType != b.HandType)
-            {
-                return a.HandType - b.HandType;
-            }
-
-            for (var i = 0; i < a.UnsortedCards.Length; i++)
-            {
-                if (a.UnsortedCards[i] == b.UnsortedCards[i])
-                {
-                    continue;
-                }
-
-                if (a.UnsortedCards[i] == 'J')
-                {
-                    return -1;
-                }
-
-                if (b.UnsortedCards[i] == 'J')
-                {
-                    return 1;
-                }
-
-
-                if (char.IsDigit(a.UnsortedCards[i]) && !char.IsDigit(b.UnsortedCards[i]))
-                {
-                    return -1;
-                }
-
-                if (!char.IsDigit(a.UnsortedCards[i]) && char.IsDigit(b.UnsortedCards[i]))
-                {
-                    return 1;
-                }
-
-                if (char.IsDigit(a.UnsortedCards[i]) && char.IsDigit(b.UnsortedCards[i]))
-                {
-                    return a.UnsortedCards[i] - b.UnsortedCards[i];
-                }
-
-                if (!char.IsDigit(a.UnsortedCards[i]) && !char.IsDigit(b.UnsortedCards[i]))
-                {
-                    return CardTypeToInt[a.UnsortedCards[i]] - CardTypeToInt[b.UnsortedCards[i]];
-                }
-            }
-
-            return 0;
-        }
-
-        public long Calculate2()
-        {
-            HandsWithJoker.Sort(SortByHand2);
-
-            long sum = 0;
-            for (var i = 0; i < HandsWithJoker.Count; i++)
-            {
-                sum += HandsWithJoker[i].Bet * (i + 1);
-            }
-
-            return sum;
+            return Hands
+                .Select(x => x.SetHandType(handTypes))
+                .Order(new HandComparer(new string("AKQT98765432J".Reverse().ToArray())))
+                .Select((x, i) => x.Bet * (i + 1))
+                .Sum();
         }
     }
 
+    public class HandComparer(string labelOrder) : IComparer<Hand>
+    {
+        private readonly Dictionary<char, int> _labelToValue = labelOrder.Select((x, i) => (x, i)).ToDictionary(x => x.x, x => x.i);
+
+        public int Compare(Hand? a, Hand? b)
+        {
+            if (a is null && b is null)
+            {
+                return 0;
+            }
+
+            if (a is null)
+            {
+                return -1;
+            }
+
+            if (b is null)
+            {
+                return 1;
+            }
+
+            if (a.HandType != b.HandType)
+            {
+                return a.HandType.CompareTo(b.HandType);
+            }
+
+            for (var i = 0; i < a.Cards.Length; i++)
+            {
+                if (a.Cards[i] != b.Cards[i])
+                    return _labelToValue[a.Cards[i]].CompareTo(_labelToValue[b.Cards[i]]);
+            }
+
+            return 0;
+        }
+    }
+
+    public sealed class JokerHand(string cards, int bet) : Hand(cards, bet)
+    {
+        public override Hand SetHandType(IEnumerable<IHandType> handTypes)
+        {
+            HandType = handTypes.First(y => y.IsMatch(this)).Value;
+            return this;
+        }
+    }
     public class Hand
     {
         public int Bet { get; }
+        public string Cards { get; }
+        public Labels Labels { get; }
+        public int HandType { get; protected set; }
 
-        private readonly Dictionary<string, Func<string, int>> PossibleHands = new()
-        {
-            { "HighCard", HighCard },
-            { "FiveOfKind", FiveOfKind },
-            { "FourOfKind", FourOfKind },
-            { "FullHouse", FullHouse },
-            { "ThreeOfKind", ThreeOfKind },
-            { "TwoPair", TwoPair },
-            { "Pair", Pair },
-        };
-
-        private readonly Dictionary<string, Func<string, int>> PossibleHandsWithJoker = new()
-        {
-            { "HighCardWithJoker", HighCardWithJoker },
-            { "FiveOfKindWithJoker", FiveOfKindWithJoker },
-            { "FourOfKindWithJoker", FourOfKindWithJoker },
-            { "FullHouseWithJoker", FullHouseWithJoker },
-            { "ThreeOfKindWithJoker", ThreeOfKindWithJoker },
-            { "TwoPairWithJoker", TwoPairWithJoker },
-            { "PairWithJoker", PairWithJoker },
-        };
-
-        public static int FiveOfKind(string c)
-        {
-            return c.All(x => c.First() == x) ? 7 : 0;
-        }
-
-        public static int FourOfKind(string c)
-        {
-            if (c[..4].All(x => x == c.First()))
-            {
-                return 6;
-            }
-
-            if (c[1..].All(x => x == c.Last()))
-            {
-                return 6;
-            }
-
-            return 0;
-        }
-
-        public static int FullHouse(string c)
-        {
-            if (c[..3].All(x => c.First() == x) && c[3..].All(x => c.Last() == x))
-            {
-                return 5;
-            }
-
-            if (c[..2].All(x => c.First() == x) && c[2..].All(x => c.Last() == x))
-            {
-                return 5;
-            }
-
-            return 0;
-        }
-
-        public static int ThreeOfKind(string hand)
-        {
-            if (hand.Any(x => hand.Count(y => y == x) == 3))
-            {
-                return 4;
-            }
-
-            return 0;
-        }
-
-        public static int TwoPair(string hand)
-        {
-            var pairs = 0;
-            char? pairChar = null;
-            foreach (var card in hand)
-            {
-                if (pairChar == card)
-                {
-                    continue;
-                }
-
-                if (hand.Count(x => x == card) == 2)
-                {
-                    pairChar = card;
-                    pairs++;
-                    if (pairs == 2)
-                    {
-                        return 3;
-                    }
-                }
-            }
-
-            return 0;
-        }
-
-        public static int Pair(string hand)
-        {
-            if (hand.Any(x => hand.Count(y => y == x) == 2))
-            {
-                return 2;
-            }
-
-            return 0;
-        }
-
-        public static int HighCard(string hand)
-        {
-            var handWithoutJokers = hand.Replace("j", string.Empty, StringComparison.InvariantCultureIgnoreCase);
-            var jokers = hand.Length - handWithoutJokers.Length;
-
-            if (jokers > 0)
-            {
-                return 0;
-            }
-
-            if (hand.Distinct().Count() == hand.Length)
-            {
-                return 1;
-            }
-
-            return 0;
-        }
-
-        public static int FiveOfKindWithJoker(string hand)
-        {
-            var handWithoutJokers = hand.Replace("j", string.Empty, StringComparison.InvariantCultureIgnoreCase);
-            var jokers = hand.Length - handWithoutJokers.Length;
-            if (jokers == 5)
-                return 7;
-
-            return handWithoutJokers.Distinct().Count() == 1 ? 7 : 0;
-        }
-
-        public static int FourOfKindWithJoker(string hand)
-        {
-            var handWithoutJokers = hand.Replace("j", string.Empty, StringComparison.InvariantCultureIgnoreCase);
-            var jokers = hand.Length - handWithoutJokers.Length;
-
-            var d = CountOccurenceOfChar(handWithoutJokers);
-
-            return d.Any(x => x.Value + jokers > 3) ? 6 : 0;
-        }
-
-        public static int FullHouseWithJoker(string hand)
-        {
-            var handWithoutJokers = hand.Replace("j", string.Empty, StringComparison.InvariantCultureIgnoreCase);
-            var jokers = hand.Length - handWithoutJokers.Length;
-
-            if (handWithoutJokers.Distinct().Count() == 2 && jokers > 0)
-            {
-                return 5;
-            }
-
-            var d = CountOccurenceOfChar(handWithoutJokers);
-
-            return !d.Any(x => x.Value > 3) && handWithoutJokers.Distinct().Count() == 2 ? 5 : 0;
-        }
-
-        public static Dictionary<char, int> CountOccurenceOfChar(string text)
-        {
-            var d = new Dictionary<char, int>();
-            foreach (var card in text)
-            {
-                if (d.TryGetValue(card, out var value))
-                {
-                    d[card] = ++value;
-                }
-                else
-                {
-                    d.Add(card, 1);
-                }
-            }
-
-            return d;
-        }
-
-        public static int ThreeOfKindWithJoker(string hand)
-        {
-            var handWithoutJokers = hand.Replace("j", string.Empty, StringComparison.InvariantCultureIgnoreCase);
-            var jokers = hand.Length - handWithoutJokers.Length;
-
-            var d = CountOccurenceOfChar(handWithoutJokers);
-            return d.Any(x => x.Value + jokers > 2) ? 4 : 0;
-        }
-
-        public static int TwoPairWithJoker(string hand)
-        {
-            var handWithoutJokers = hand.Replace("j", string.Empty, StringComparison.InvariantCultureIgnoreCase);
-            var jokers = hand.Length - handWithoutJokers.Length;
-            if (jokers == 2 && handWithoutJokers.Distinct().Count() > 1)
-            {
-                return 3;
-            }
-
-            var pairs = 0;
-            foreach (var kvp in CountOccurenceOfChar(handWithoutJokers))
-            {
-                if (kvp.Value >= 2)
-                {
-                    pairs++;
-                }else if (kvp.Value + jokers >= 2)
-                {
-                    pairs++;
-                    jokers--;
-                }
-
-                if (pairs >= 2)
-                {
-                    return 3;
-                }
-            }
-
-            return 0;
-        }
-
-        public static int PairWithJoker(string hand)
-        {
-            var handWithoutJokers = hand.Replace("j", string.Empty, StringComparison.InvariantCultureIgnoreCase);
-            var jokers = hand.Length - handWithoutJokers.Length;
-
-            return CountOccurenceOfChar(handWithoutJokers).Any( x => x.Value + jokers >= 2) ? 2 : 0;
-        }
-
-        public static int HighCardWithJoker(string hand)
-        {
-            var handWithoutJokers = hand.Replace("j", string.Empty, StringComparison.InvariantCultureIgnoreCase);
-            if (handWithoutJokers.Distinct().Count() == hand.Length)
-            {
-                return 1;
-            }
-
-            return 0;
-        }
-
-        public Hand(List<char> cards, int bet)
+        public Hand(string cards, int bet)
         {
             Bet = bet;
-            UnsortedCards = string.Join(string.Empty, cards);
-            cards.Sort(SortByChardThenNumber);
-            Cards = string.Join(string.Empty, cards);
+            Cards = cards;
+            Labels = cards.GroupBy(x => x).Select(x => (x.Key, x.Count())).ToList();
         }
 
-        public static Hand Create(List<char> cards, int bet)
+        public virtual Hand SetHandType(IEnumerable<IHandType> handTypes)
         {
-            var hand = new Hand(cards, bet);
-            hand.GetHand();
-            return hand;
+            HandType = handTypes.First(y => y.IsMatch(this)).Value;
+            return this;
         }
+    }
 
-        public static Hand Create2(List<char> cards, int bet)
+    public class FiveOfKind : IHandType
+    {
+        public int Value => 7;
+
+        public bool IsMatch(Hand h)
         {
-            var hand = new Hand(cards, bet);
-            hand.GetHand2();
-            return hand;
+            return h.Labels.Count == 1;
         }
 
-        public void GetHand()
+        public bool IsMatch(JokerHand h)
         {
-            foreach (var possibleHand in PossibleHands)
-            {
-                var handType = possibleHand.Value(Cards);
-                if (handType > 0)
-                {
-                    HandType = handType;
-                    HandName = possibleHand.Key;
-                    break;
-                }
-            }
+            return h.Labels.Count == 2;
         }
+    }
 
-        public void GetHand2()
+    public class FourOfKind : IHandType
+    {
+        public int Value => 6;
+
+        public bool IsMatch(Hand hand)
         {
-            foreach (var possibleHand in PossibleHandsWithJoker)
-            {
-                var handType = possibleHand.Value(Cards);
-                if (handType > 0)
-                {
-                    HandType = handType;
-                    HandName = possibleHand.Key;
-                    break;
-                }
-            }
+            return hand.Labels.Count == 2 && hand.Labels.Any(x => x.Count is 4 or 1);
         }
 
-        public string Cards { get; set; }
-        public string UnsortedCards { get; set; }
-        public string HandName { get; set; }
-        public int HandType { get; set; }
-
-        private int SortByChardThenNumber(char a, char b)
+        public bool IsMatch(JokerHand hand)
         {
-            if (a == b)
-            {
-                return 0;
-            }
-
-            if (a == 'A')
-            {
-                return -1;
-            }
-
-            if (!char.IsDigit(a) && char.IsDigit(b))
-            {
-                return -1;
-            }
-
-            if (char.IsDigit(a) && !char.IsDigit(b))
-            {
-                return 1;
-            }
-
-            if (char.IsDigit(a) && char.IsDigit(b))
-            {
-                return b - a;
-            }
-
-            if (!char.IsDigit(a) && !char.IsDigit(b))
-            {
-                return b - a;
-            }
-
-            return 0;
+            return hand.Labels.Count == 3 && hand.Labels.Any(x => x.Count >= 2);
         }
+    }
+
+    public class FullHouse : IHandType
+    {
+        public int Value => 5;
+
+        public bool IsMatch(Hand hand)
+        {
+            return hand.Labels.Count == 2 && hand.Labels.Any(x => x.Count is 2 or 3);
+        }
+
+        public bool IsMatch(JokerHand hand)
+        {
+            return hand.Labels.Count == 3;
+        }
+    }
+
+    public class ThreeOfKind : IHandType
+    {
+        public int Value => 4;
+        public bool IsMatch(Hand hand)
+        {
+            return hand.Labels.Count == 3 && hand.Labels.Any(x => x.Count == 3);
+        }
+
+        public bool IsMatch(JokerHand hand)
+        {
+            return hand.Labels.Count == 4 && hand.Labels.Any(x => x.Count == 2);
+        }
+    }
+
+    public class TwoPair : IHandType
+    {
+        public int Value => 3;
+
+        public bool IsMatch(Hand hand)
+        {
+            return hand.Labels.Count == 3;
+        }
+        public bool IsMatch(JokerHand hand)
+        {
+            return hand.Labels.Count == 4;
+        }
+    }
+
+    public class OnePair : IHandType
+    {
+        public int Value => 2;
+
+        public bool IsMatch(Hand hand)
+        {
+            return hand.Labels.Count == 4;
+        }
+
+        public bool IsMatch(JokerHand hand)
+        {
+            return true;
+        }
+    }
+
+    public class HighCard : IHandType
+    {
+        public int Value => 1;
+
+        public bool IsMatch(Hand hand)
+        {
+            return hand.Labels.Count == 5;
+        }
+
+        public bool IsMatch(JokerHand hand)
+        {
+            return false;
+        }
+    }
+
+    public interface IHandType
+    {
+        int Value { get; }
+        bool IsMatch(Hand hand);
+        bool IsMatch(JokerHand hand);
     }
 }
