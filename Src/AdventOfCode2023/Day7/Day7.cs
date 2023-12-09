@@ -87,25 +87,10 @@ namespace AdventOfCode2023.Day7
 
     public class HandComparer(string labelOrder) : IComparer<Hand>
     {
-        private readonly Dictionary<char, int> _labelToValue = labelOrder.Select((x, i) => (x, i)).ToDictionary(x => x.x, x => x.i);
+        private readonly Dictionary<char, int> _labels = labelOrder.Select((x, i) => (x, i)).ToDictionary(x => x.x, x => x.i);
 
-        public int Compare(Hand? a, Hand? b)
+        public int Compare(Hand a, Hand b)
         {
-            if (a is null && b is null)
-            {
-                return 0;
-            }
-
-            if (a is null)
-            {
-                return -1;
-            }
-
-            if (b is null)
-            {
-                return 1;
-            }
-
             if (a.HandType != b.HandType)
             {
                 return a.HandType.CompareTo(b.HandType);
@@ -114,7 +99,7 @@ namespace AdventOfCode2023.Day7
             for (var i = 0; i < a.Cards.Length; i++)
             {
                 if (a.Cards[i] != b.Cards[i])
-                    return _labelToValue[a.Cards[i]].CompareTo(_labelToValue[b.Cards[i]]);
+                    return _labels[a.Cards[i]].CompareTo(_labels[b.Cards[i]]);
             }
 
             return 0;
